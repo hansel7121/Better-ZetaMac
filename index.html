@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Arithmetic Game – Online Speed Drill</title>
+    <link href="app.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="welcome">
+      <h1>Arithmetic Game</h1>
+      <p
+        >The Arithmetic Game is a fast-paced speed drill where you are given two
+        minutes to solve as many arithmetic problems as you can.</p
+      >
+      <p
+        >If you have any questions, please contact
+        <a href="mailto:arithmetic@zetamac.com">arithmetic@zetamac.com</a>.</p
+      >
+      <form id="settings-form" class="game-options">
+        <dl>
+          <dt>
+            <label>
+              <input checked name="add" type="checkbox" />
+              Addition
+            </label>
+          </dt>
+          <dd
+            >Range: (<input
+              type="text"
+              name="add_left_min"
+              id="add_left_min"
+              value="2"
+            />
+            to
+            <input
+              type="text"
+              name="add_left_max"
+              id="add_left_max"
+              value="100"
+            />) + (<input
+              type="text"
+              name="add_right_min"
+              id="add_right_min"
+              value="2"
+            />
+            to
+            <input
+              type="text"
+              name="add_right_max"
+              id="add_right_max"
+              value="100"
+            />)</dd
+          >
+          <dt>
+            <label>
+              <input checked name="sub" type="checkbox" />
+              Subtraction
+            </label>
+          </dt>
+          <dd>Addition problems in reverse.</dd>
+          <dt>
+            <label>
+              <input checked name="mul" type="checkbox" />
+              Multiplication
+            </label>
+          </dt>
+          <dd
+            >Range: (<input
+              type="text"
+              name="mul_left_min"
+              id="mul_left_min"
+              value="2"
+            />
+            to
+            <input
+              type="text"
+              name="mul_left_max"
+              id="mul_left_max"
+              value="12"
+            />) × (<input
+              type="text"
+              name="mul_right_min"
+              id="mul_right_min"
+              value="2"
+            />
+            to
+            <input
+              type="text"
+              name="mul_right_max"
+              id="mul_right_max"
+              value="100"
+            />)</dd
+          >
+          <dt>
+            <label>
+              <input checked name="div" type="checkbox" />
+              Division
+            </label>
+          </dt>
+          <dd>Multiplication problems in reverse.</dd>
+        </dl>
+        <p>
+          Duration:
+          <select name="duration">
+            <option value="30">30 seconds</option>
+            <option value="60">60 seconds</option>
+            <option selected value="120">120 seconds</option>
+            <option value="300">300 seconds</option>
+            <option value="600">600 seconds</option>
+          </select>
+        </p>
+        <input type="submit" value="Start" />
+      </form>
+      <div id="history">
+        <h2>Score History</h2>
+        <table id="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Duration</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p id="history-empty">No games played yet.</p>
+        <button id="clear-history">Clear history</button>
+      </div>
+    </div>
+    <div id="game" style="display:none">
+      <span class="left">Seconds left:</span>
+      <span class="correct">Score: 0</span>
+      <div class="banner">
+        <div class="start">
+          <span class="problem"></span>
+          =
+          <input class="answer" />
+        </div>
+        <div class="end">
+          <p class="correct">Score: 0</p>
+          <p>
+            <a href="#" id="try-again">Try again</a>
+            or <a href="#" id="change-settings">change settings</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+    <script src="jquery.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
