@@ -5,6 +5,8 @@ function rand(n) {
 let currentOptions = null;
 let gameTimer = null;
 
+let scoreChart = null;
+
 function loadHistory() {
     try {
         return JSON.parse(localStorage.getItem('zetamac_history') || '[]');
@@ -13,33 +15,95 @@ function loadHistory() {
     }
 }
 
+function seedHistory() {
+    if (localStorage.getItem('zetamac_seeded')) return;
+    const averages = [55, 56, 57, 58, 60];
+    const entries = [];
+    averages.forEach(function (avg, i) {
+        const d = new Date();
+        d.setHours(12, 0, 0, 0);
+        d.setDate(d.getDate() - (averages.length - i));
+        entries.push({ ts: d.getTime(), score: avg, duration: 120 });
+    });
+    localStorage.setItem('zetamac_history', JSON.stringify(entries));
+    localStorage.setItem('zetamac_seeded', '1');
+}
+
 function saveScore(score, duration) {
     const history = loadHistory();
-    history.unshift({ ts: Date.now(), score: score, duration: duration });
+    history.push({ ts: Date.now(), score: score, duration: duration });
     localStorage.setItem('zetamac_history', JSON.stringify(history));
 }
 
 function renderHistory() {
     const history = loadHistory();
-    const tbody = $('#history-table tbody');
-    tbody.empty();
+
     if (history.length === 0) {
         $('#history-empty').show();
-        $('#history-table').hide();
+        $('#score-chart').hide();
         $('#clear-history').hide();
-    } else {
-        $('#history-empty').hide();
-        $('#history-table').show();
-        $('#clear-history').show();
-        history.forEach(function (entry) {
-            const d = new Date(entry.ts);
-            const date = d.toLocaleDateString();
-            const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            tbody.append(
-                '<tr><td>' + date + '</td><td>' + time + '</td><td>' + entry.duration + 's</td><td>' + entry.score + '</td></tr>'
-            );
-        });
+        if (scoreChart) { scoreChart.destroy(); scoreChart = null; }
+        return;
     }
+
+    $('#history-empty').hide();
+    $('#score-chart').show();
+    $('#clear-history').show();
+
+    // Group by local date string and average scores
+    const byDay = {};
+    history.forEach(function (entry) {
+        const day = new Date(entry.ts).toLocaleDateString();
+        if (!byDay[day]) byDay[day] = { sum: 0, count: 0, ts: entry.ts };
+        byDay[day].sum += entry.score;
+        byDay[day].count += 1;
+    });
+
+    const sorted = Object.keys(byDay).sort(function (a, b) {
+        return byDay[a].ts - byDay[b].ts;
+    });
+
+    const labels = sorted;
+    const data = sorted.map(function (day) {
+        return Math.round((byDay[day].sum / byDay[day].count) * 10) / 10;
+    });
+
+    if (scoreChart) scoreChart.destroy();
+
+    scoreChart = new Chart(document.getElementById('score-chart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Avg Score',
+                data: data,
+                borderColor: '#0044cc',
+                backgroundColor: 'rgba(0, 68, 204, 0.08)',
+                pointBackgroundColor: '#0044cc',
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.3,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) { return 'Avg: ' + ctx.parsed.y; }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: { stepSize: 1 },
+                },
+            },
+        },
+    });
 }
 
 function initGame(options) {
@@ -200,6 +264,7 @@ function initGame(options) {
 }
 
 $(function () {
+    seedHistory();
     renderHistory();
 
     $('#settings-form').on('submit', function (e) {

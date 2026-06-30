@@ -111,18 +111,8 @@
         <input type="submit" value="Start" />
       </form>
       <div id="history">
-        <h2>Score History</h2>
-        <table id="history-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Duration</th>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <h2>Daily Average Score</h2>
+        <canvas id="score-chart"></canvas>
         <p id="history-empty">No games played yet.</p>
         <button id="clear-history">Clear history</button>
       </div>
@@ -146,6 +136,7 @@
       </div>
     </div>
     <script src="jquery.min.js"></script>
+    <script src="chart.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

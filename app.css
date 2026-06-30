@@ -95,25 +95,11 @@ table th {
 }
 #history h2 {
   font-size: 14px;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
 }
-#history-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-#history-table th,
-#history-table td {
-  padding: 3px 6px;
-  border-bottom: 1px solid #bbb;
-}
-#history-table td:nth-child(3),
-#history-table td:nth-child(4) {
-  text-align: right;
-}
-#history-table th:nth-child(3),
-#history-table th:nth-child(4) {
-  text-align: right;
+#score-chart {
+  display: block;
+  width: 100% !important;
 }
 #history-empty {
   font-size: 13px;
