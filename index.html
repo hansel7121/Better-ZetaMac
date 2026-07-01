@@ -120,6 +120,25 @@
         <h2>Operation Breakdown</h2>
         <canvas id="stats-chart"></canvas>
         <p id="stats-empty">Play some games to see your operation breakdown.</p>
+        <p id="stats-hint" style="display:none">Click a slice to analyze weaknesses.</p>
+      </div>
+      <div id="drill-down" style="display:none">
+        <div id="drill-down-header">
+          <h2 id="drill-down-title"></h2>
+          <button id="drill-close">&#x2715;</button>
+        </div>
+        <div class="drill-section">
+          <h3>By Number Range</h3>
+          <canvas id="drill-range-chart"></canvas>
+        </div>
+        <div class="drill-section">
+          <h3>By Operand Value</h3>
+          <canvas id="drill-operand-chart"></canvas>
+        </div>
+        <div class="drill-section">
+          <h3>By Answer Size</h3>
+          <canvas id="drill-answer-chart"></canvas>
+        </div>
       </div>
     </div>
     <div id="game" style="display:none">

@@ -8,12 +8,147 @@ let gameTimer = null;
 let scoreChart = null;
 let speedChart = null;
 let statsChart = null;
+let drillRangeChart = null;
+let drillOperandChart = null;
+let drillAnswerChart = null;
 
 function getOpType(problem) {
     if (problem.indexOf('+') !== -1) return 'add';
     if (problem.indexOf('*') !== -1) return 'mul';
     if (problem.indexOf('/') !== -1) return 'div';
     return 'sub';
+}
+
+function parseProblem(problem) {
+    var sep = problem.indexOf(' + ') !== -1 ? ' + ' :
+              problem.indexOf(' * ') !== -1 ? ' * ' :
+              problem.indexOf(' / ') !== -1 ? ' / ' : ' - ';
+    var parts = problem.split(sep);
+    return { left: parseInt(parts[0], 10), right: parseInt(parts[1], 10) };
+}
+
+function makeHorizBar(canvasId, labels, data, color) {
+    return new Chart(document.getElementById(canvasId), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: color,
+                borderWidth: 0,
+            }],
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) { return ' ' + ctx.parsed.x + 's avg'; },
+                    },
+                },
+            },
+            scales: {
+                x: { beginAtZero: true, title: { display: true, text: 'Avg seconds' } },
+            },
+        },
+    });
+}
+
+function closeDrillDown() {
+    $('#drill-down').hide();
+    if (drillRangeChart) { drillRangeChart.destroy(); drillRangeChart = null; }
+    if (drillOperandChart) { drillOperandChart.destroy(); drillOperandChart = null; }
+    if (drillAnswerChart) { drillAnswerChart.destroy(); drillAnswerChart = null; }
+}
+
+function showDrillDown(opType) {
+    const opNames = { add: 'Addition', sub: 'Subtraction', mul: 'Multiplication', div: 'Division' };
+    const history = loadHistory();
+    const allProblems = [];
+
+    history.forEach(function (game) {
+        if (!game.problems) return;
+        game.problems.forEach(function (p) {
+            if (p.timeMs > 0 && getOpType(p.problem) === opType) {
+                var parsed = parseProblem(p.problem);
+                allProblems.push({ left: parsed.left, right: parsed.right, answer: p.answer, timeMs: p.timeMs });
+            }
+        });
+    });
+
+    if (!allProblems.length) return;
+
+    // Destroy old charts, set title, show panel before creating charts so canvas dimensions are correct
+    if (drillRangeChart) { drillRangeChart.destroy(); drillRangeChart = null; }
+    if (drillOperandChart) { drillOperandChart.destroy(); drillOperandChart = null; }
+    if (drillAnswerChart) { drillAnswerChart.destroy(); drillAnswerChart = null; }
+    $('#drill-down-title').text(opNames[opType] + ' — Weakness Analysis');
+    $('#drill-down').show();
+
+    // 1. By number range
+    var rangeBuckets, rangeFn;
+    if (opType === 'mul') {
+        rangeBuckets = ['\xd72–6', '\xd77–12'];
+        rangeFn = function (p) { return p.left <= 6 ? rangeBuckets[0] : rangeBuckets[1]; };
+    } else if (opType === 'div') {
+        rangeBuckets = ['\xf72–6', '\xf77–12'];
+        rangeFn = function (p) { return p.right <= 6 ? rangeBuckets[0] : rangeBuckets[1]; };
+    } else {
+        rangeBuckets = ['2–25', '26–50', '51–100'];
+        rangeFn = function (p) {
+            var m = Math.max(p.left, p.right);
+            return m <= 25 ? rangeBuckets[0] : m <= 50 ? rangeBuckets[1] : rangeBuckets[2];
+        };
+    }
+    var rangeGroups = {};
+    rangeBuckets.forEach(function (b) { rangeGroups[b] = { sum: 0, count: 0 }; });
+    allProblems.forEach(function (p) { var k = rangeFn(p); rangeGroups[k].sum += p.timeMs; rangeGroups[k].count++; });
+    var rangeLabels = rangeBuckets.filter(function (b) { return rangeGroups[b].count > 0; });
+    var rangeData = rangeLabels.map(function (b) { return Math.round(rangeGroups[b].sum / rangeGroups[b].count / 100) / 10; });
+    drillRangeChart = makeHorizBar('drill-range-chart', rangeLabels, rangeData, 'rgba(54, 162, 235, 0.7)');
+
+    // 2. By operand value
+    var operandGroups = {}, operandOrder = [];
+    if (opType === 'mul') {
+        for (var v = 2; v <= 12; v++) { var mk = '\xd7' + v; operandGroups[mk] = { sum: 0, count: 0 }; operandOrder.push(mk); }
+        allProblems.forEach(function (p) { var k = '\xd7' + p.left; if (operandGroups[k]) { operandGroups[k].sum += p.timeMs; operandGroups[k].count++; } });
+    } else if (opType === 'div') {
+        for (var v = 2; v <= 12; v++) { var dk = '\xf7' + v; operandGroups[dk] = { sum: 0, count: 0 }; operandOrder.push(dk); }
+        allProblems.forEach(function (p) { var k = '\xf7' + p.right; if (operandGroups[k]) { operandGroups[k].sum += p.timeMs; operandGroups[k].count++; } });
+    } else {
+        var bands = ['2–10','11–20','21–30','31–40','41–50','51–60','61–70','71–80','81–90','91–100'];
+        bands.forEach(function (b) { operandGroups[b] = { sum: 0, count: 0 }; operandOrder.push(b); });
+        allProblems.forEach(function (p) {
+            var l = p.left;
+            var band = l <= 10 ? bands[0] : l <= 20 ? bands[1] : l <= 30 ? bands[2] : l <= 40 ? bands[3] :
+                       l <= 50 ? bands[4] : l <= 60 ? bands[5] : l <= 70 ? bands[6] : l <= 80 ? bands[7] :
+                       l <= 90 ? bands[8] : bands[9];
+            operandGroups[band].sum += p.timeMs; operandGroups[band].count++;
+        });
+    }
+    var operandLabels = operandOrder.filter(function (b) { return operandGroups[b].count > 0; });
+    var operandData = operandLabels.map(function (b) { return Math.round(operandGroups[b].sum / operandGroups[b].count / 100) / 10; });
+    drillOperandChart = makeHorizBar('drill-operand-chart', operandLabels, operandData, 'rgba(255, 99, 132, 0.7)');
+
+    // 3. By answer size
+    var answerBuckets, answerFn;
+    if (opType === 'add' || opType === 'sub') {
+        answerBuckets = ['≤25', '26–75', '76–150', '>150'];
+        answerFn = function (p) { var a = p.answer; return a <= 25 ? answerBuckets[0] : a <= 75 ? answerBuckets[1] : a <= 150 ? answerBuckets[2] : answerBuckets[3]; };
+    } else {
+        answerBuckets = ['≤50', '51–200', '201–500', '>500'];
+        answerFn = function (p) { var a = p.answer; return a <= 50 ? answerBuckets[0] : a <= 200 ? answerBuckets[1] : a <= 500 ? answerBuckets[2] : answerBuckets[3]; };
+    }
+    var answerGroups = {};
+    answerBuckets.forEach(function (b) { answerGroups[b] = { sum: 0, count: 0 }; });
+    allProblems.forEach(function (p) { var k = answerFn(p); answerGroups[k].sum += p.timeMs; answerGroups[k].count++; });
+    var answerLabels = answerBuckets.filter(function (b) { return answerGroups[b].count > 0; });
+    var answerData = answerLabels.map(function (b) { return Math.round(answerGroups[b].sum / answerGroups[b].count / 100) / 10; });
+    drillAnswerChart = makeHorizBar('drill-answer-chart', answerLabels, answerData, 'rgba(75, 192, 192, 0.7)');
+
+    document.getElementById('drill-down').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function loadHistory() {
@@ -106,12 +241,15 @@ function renderStats() {
     if (!hasData) {
         $('#stats-empty').show();
         $('#stats-chart').hide();
+        $('#stats-hint').hide();
+        closeDrillDown();
         if (statsChart) { statsChart.destroy(); statsChart = null; }
         return;
     }
 
     $('#stats-empty').hide();
     $('#stats-chart').show();
+    $('#stats-hint').show();
 
     const total = totals.add + totals.sub + totals.mul + totals.div;
     if (statsChart) { statsChart.destroy(); statsChart = null; }
@@ -133,6 +271,13 @@ function renderStats() {
         },
         options: {
             responsive: true,
+            onClick: function (evt, elements) {
+                if (!elements.length) return;
+                showDrillDown(['add', 'sub', 'mul', 'div'][elements[0].index]);
+            },
+            onHover: function (evt, elements) {
+                evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+            },
             plugins: {
                 legend: { position: 'bottom' },
                 tooltip: {
@@ -426,8 +571,13 @@ $(function () {
 
     $('#clear-history').on('click', function () {
         localStorage.removeItem('zetamac_history');
+        closeDrillDown();
         renderHistory();
         renderStats();
+    });
+
+    $('#drill-close').on('click', function () {
+        closeDrillDown();
     });
 
     $(document).on('keydown', function (e) {
