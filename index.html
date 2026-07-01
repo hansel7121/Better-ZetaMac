@@ -116,6 +116,11 @@
         <p id="history-empty">No games played yet.</p>
         <button id="clear-history">Clear history</button>
       </div>
+      <div id="stats">
+        <h2>Operation Breakdown</h2>
+        <canvas id="stats-chart"></canvas>
+        <p id="stats-empty">Play some games to see your operation breakdown.</p>
+      </div>
     </div>
     <div id="game" style="display:none">
       <span class="left">Seconds left:</span>
@@ -132,6 +137,21 @@
             <a href="#" id="try-again">Try again</a>
             or <a href="#" id="change-settings">change settings</a>.
           </p>
+          <div id="end-details" style="display:none">
+            <div id="speed-section">
+              <h3>Speed per question</h3>
+              <canvas id="speed-chart"></canvas>
+            </div>
+            <div id="questions-section">
+              <h3>All questions (slowest first)</h3>
+              <table id="questions-table">
+                <thead>
+                  <tr><th>Question</th><th>Time</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>

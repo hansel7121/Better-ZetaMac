@@ -111,3 +111,57 @@ table th {
   font-size: 12px;
   cursor: pointer;
 }
+
+#stats {
+  margin-top: 20px;
+  clear: both;
+}
+#stats h2 {
+  font-size: 14px;
+  margin: 0 0 8px 0;
+}
+#stats-chart {
+  display: block;
+  max-width: 260px;
+  margin: 0 auto;
+}
+#stats-empty {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0;
+}
+
+#end-details {
+  text-align: left;
+  max-width: 640px;
+  margin: 24px auto 0;
+  padding: 0 20px 30px;
+  font-size: 14px;
+}
+#end-details h3 {
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  font-weight: bold;
+}
+#speed-section {
+  margin-bottom: 28px;
+}
+#speed-chart {
+  display: block;
+  width: 100% !important;
+}
+#questions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+#questions-table th,
+#questions-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #bbb;
+}
+#questions-table td:last-child,
+#questions-table th:last-child {
+  text-align: right;
+  white-space: nowrap;
+}

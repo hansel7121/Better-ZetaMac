@@ -6,6 +6,15 @@ let currentOptions = null;
 let gameTimer = null;
 
 let scoreChart = null;
+let speedChart = null;
+let statsChart = null;
+
+function getOpType(problem) {
+    if (problem.indexOf('+') !== -1) return 'add';
+    if (problem.indexOf('*') !== -1) return 'mul';
+    if (problem.indexOf('/') !== -1) return 'div';
+    return 'sub';
+}
 
 function loadHistory() {
     try {
@@ -29,10 +38,111 @@ function seedHistory() {
     localStorage.setItem('zetamac_seeded', '1');
 }
 
-function saveScore(score, duration) {
+function saveScore(score, duration, problems) {
     const history = loadHistory();
-    history.push({ ts: Date.now(), score: score, duration: duration });
+    history.push({
+        ts: Date.now(),
+        score: score,
+        duration: duration,
+        problems: problems
+            .filter(function (p) { return p.timeMs > 0; })
+            .map(function (p) { return { problem: p.problem, answer: p.answer, timeMs: p.timeMs }; }),
+    });
     localStorage.setItem('zetamac_history', JSON.stringify(history));
+}
+
+function renderEndScreen(problems) {
+    const completed = problems.filter(function (p) { return p.timeMs > 0; });
+
+    if (speedChart) { speedChart.destroy(); speedChart = null; }
+    speedChart = new Chart(document.getElementById('speed-chart'), {
+        type: 'bar',
+        data: {
+            labels: completed.map(function (_, i) { return '#' + (i + 1); }),
+            datasets: [{
+                data: completed.map(function (p) { return Math.round(p.timeMs / 100) / 10; }),
+                backgroundColor: 'rgba(0, 68, 204, 0.6)',
+                borderColor: '#0044cc',
+                borderWidth: 1,
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'Seconds' } },
+                x: { title: { display: true, text: 'Question #' } },
+            },
+        },
+    });
+
+    const sorted = completed.slice().sort(function (a, b) { return b.timeMs - a.timeMs; });
+    const tbody = $('#questions-table tbody');
+    tbody.empty();
+    sorted.forEach(function (p) {
+        tbody.append(
+            '<tr><td>' + p.problem + ' = ' + p.answer + '</td>' +
+            '<td>' + (p.timeMs / 1000).toFixed(1) + 's</td></tr>'
+        );
+    });
+
+    $('#end-details').show();
+}
+
+function renderStats() {
+    const history = loadHistory();
+    const totals = { add: 0, sub: 0, mul: 0, div: 0 };
+    let hasData = false;
+
+    history.forEach(function (game) {
+        if (!game.problems) return;
+        game.problems.forEach(function (p) {
+            if (p.timeMs <= 0) return;
+            totals[getOpType(p.problem)] += p.timeMs;
+            hasData = true;
+        });
+    });
+
+    if (!hasData) {
+        $('#stats-empty').show();
+        $('#stats-chart').hide();
+        if (statsChart) { statsChart.destroy(); statsChart = null; }
+        return;
+    }
+
+    $('#stats-empty').hide();
+    $('#stats-chart').show();
+
+    const total = totals.add + totals.sub + totals.mul + totals.div;
+    if (statsChart) { statsChart.destroy(); statsChart = null; }
+    statsChart = new Chart(document.getElementById('stats-chart'), {
+        type: 'pie',
+        data: {
+            labels: ['Addition', 'Subtraction', 'Multiplication', 'Division'],
+            datasets: [{
+                data: ['add', 'sub', 'mul', 'div'].map(function (k) {
+                    return Math.round(totals[k] / total * 1000) / 10;
+                }),
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                ],
+            }],
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function (ctx) { return ctx.label + ': ' + ctx.parsed + '%'; },
+                    },
+                },
+            },
+        },
+    });
 }
 
 function renderHistory() {
@@ -116,6 +226,9 @@ function initGame(options) {
     game.find('.banner .end').hide();
     game.find('.answer').val('').prop('disabled', false);
     game.find('.banner p.correct').text('Score: 0');
+    $('#end-details').hide();
+    $('#questions-table tbody').empty();
+    if (speedChart) { speedChart.destroy(); speedChart = null; }
 
     if (gameTimer) {
         clearInterval(gameTimer);
@@ -258,7 +371,8 @@ function initGame(options) {
             banner.find('.start').hide();
             banner.find('p.correct').text('Score: ' + correct_ct);
             banner.find('.end').show();
-            saveScore(correct_ct, duration);
+            saveScore(correct_ct, duration, problemLog);
+            renderEndScreen(problemLog);
         }
     }, 1000);
 }
@@ -266,6 +380,7 @@ function initGame(options) {
 $(function () {
     seedHistory();
     renderHistory();
+    renderStats();
 
     $('#settings-form').on('submit', function (e) {
         e.preventDefault();
@@ -306,11 +421,13 @@ $(function () {
         $('#game').hide();
         $('#welcome').show();
         renderHistory();
+        renderStats();
     });
 
     $('#clear-history').on('click', function () {
         localStorage.removeItem('zetamac_history');
         renderHistory();
+        renderStats();
     });
 
     $(document).on('keydown', function (e) {
