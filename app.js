@@ -27,7 +27,31 @@ function parseProblem(problem) {
     return { left: parseInt(parts[0], 10), right: parseInt(parts[1], 10) };
 }
 
-function makeHorizBar(canvasId, labels, data, color) {
+function makeHorizBar(canvasId, labels, data, color, onBarClick) {
+    var options = {
+        indexAxis: 'y',
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function (ctx) { return ' ' + ctx.parsed.x + 's avg'; },
+                },
+            },
+        },
+        scales: {
+            x: { beginAtZero: true, title: { display: true, text: 'Avg seconds' } },
+        },
+    };
+    if (onBarClick) {
+        options.onClick = function (evt, elements) {
+            if (!elements.length) return;
+            onBarClick(elements[0].index);
+        };
+        options.onHover = function (evt, elements) {
+            evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+        };
+    }
     return new Chart(document.getElementById(canvasId), {
         type: 'bar',
         data: {
@@ -38,22 +62,68 @@ function makeHorizBar(canvasId, labels, data, color) {
                 borderWidth: 0,
             }],
         },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function (ctx) { return ' ' + ctx.parsed.x + 's avg'; },
-                    },
-                },
-            },
-            scales: {
-                x: { beginAtZero: true, title: { display: true, text: 'Avg seconds' } },
-            },
-        },
+        options: options,
     });
+}
+
+// Full options object matching the settings-form defaults, with every operation
+// off. Targeted-practice sessions start from this and enable one operation.
+function defaultOptions() {
+    return {
+        add: false, sub: false, mul: false, div: false,
+        add_left_min: 2, add_left_max: 100, add_right_min: 2, add_right_max: 100,
+        mul_left_min: 2, mul_left_max: 12, mul_right_min: 2, mul_right_max: 100,
+        duration: 120,
+        practice: true,
+    };
+}
+
+// Build the game options for clicking the operand-value bar `label` for `opType`.
+function operandPracticeTarget(opType, label) {
+    var opts = defaultOptions();
+    if (opType === 'mul') {
+        var mv = parseInt(label.slice(1), 10); // strip leading '×'
+        opts.mul = true;
+        opts.mul_left_min = mv;
+        opts.mul_left_max = mv;
+        opts.practiceLabel = 'Multiplication · ' + label;
+    } else if (opType === 'div') {
+        var dv = parseInt(label.slice(1), 10); // strip leading '÷'
+        opts.div = true;
+        opts.mul_left_min = dv; // divisor = left factor of the reversed multiplication
+        opts.mul_left_max = dv;
+        opts.practiceLabel = 'Division · ' + label;
+    } else {
+        var parts = label.split('–'); // en-dash separated band, e.g. "11–20"
+        var lo = parseInt(parts[0], 10);
+        var hi = parseInt(parts[1], 10);
+        if (opType === 'add') {
+            opts.add = true;
+            opts.add_left_min = lo;
+            opts.add_left_max = hi;
+            opts.practiceLabel = 'Addition · left operand ' + label;
+        } else {
+            // Subtraction is charted by minuend (first + second). Constrain the
+            // operand ranges to the band ceiling and reject sums outside [lo, hi].
+            opts.sub = true;
+            opts.add_left_min = 2;
+            opts.add_left_max = hi;
+            opts.add_right_min = 2;
+            opts.add_right_max = hi;
+            opts.problemFilter = function (g) {
+                var m = parseProblem(g.plainProblem).left;
+                return m >= lo && m <= hi;
+            };
+            opts.practiceLabel = 'Subtraction · minuend ' + label;
+        }
+    }
+    return opts;
+}
+
+function startPractice(target) {
+    $('#welcome').hide();
+    $('#game').show();
+    initGame(target);
 }
 
 function closeDrillDown() {
@@ -130,7 +200,10 @@ function showDrillDown(opType) {
     }
     var operandLabels = operandOrder.filter(function (b) { return operandGroups[b].count > 0; });
     var operandData = operandLabels.map(function (b) { return Math.round(operandGroups[b].sum / operandGroups[b].count / 100) / 10; });
-    drillOperandChart = makeHorizBar('drill-operand-chart', operandLabels, operandData, 'rgba(255, 99, 132, 0.7)');
+    var operandTargets = operandLabels.map(function (b) { return operandPracticeTarget(opType, b); });
+    drillOperandChart = makeHorizBar('drill-operand-chart', operandLabels, operandData, 'rgba(255, 99, 132, 0.7)', function (index) {
+        startPractice(operandTargets[index]);
+    });
 
     // 3. By answer size
     var answerBuckets, answerFn;
@@ -365,6 +438,13 @@ function initGame(options) {
     currentOptions = options;
 
     const game = $('#game');
+    if (options.practice) {
+        $('#practice-banner')
+            .text(options.practiceLabel + ' — targeted practice, not saved to history')
+            .show();
+    } else {
+        $('#practice-banner').hide();
+    }
     game.find('.left').text('Seconds left:');
     game.find('span.correct').text('Score: 0');
     game.find('.banner .start').show();
@@ -452,6 +532,9 @@ function initGame(options) {
         let genned;
         while (genned == null) {
             genned = pgs[rand(pgs.length)]();
+            if (genned && options.problemFilter && !options.problemFilter(genned)) {
+                genned = null;
+            }
         }
         return genned;
     }
@@ -516,7 +599,9 @@ function initGame(options) {
             banner.find('.start').hide();
             banner.find('p.correct').text('Score: ' + correct_ct);
             banner.find('.end').show();
-            saveScore(correct_ct, duration, problemLog);
+            if (!options.practice) {
+                saveScore(correct_ct, duration, problemLog);
+            }
             renderEndScreen(problemLog);
         }
     }, 1000);
