@@ -149,23 +149,149 @@
         return { terms: terms, answer: ans, hints: hints };
     }
 
-    // Letter sequences: a numeric rule on alphabet positions.
+    // Letter sequences: a numeric rule on alphabet positions (up or down).
     function gLetters() {
-        var positions = [], p, g, n = pick([4, 5]);
-        if (rnd(2)) {                // increasing gaps (second-order)
+        var positions = [], p, g, n = pick([4, 5]), i, mode = rnd(3);
+        if (mode === 0) {            // increasing gaps (second-order)
             p = randInt(1, 4); g = randInt(1, 3);
-            for (var i = 0; i < n; i++) { positions.push(p); p += g; g += 1; }
-        } else {                     // constant gap (arithmetic)
+            for (i = 0; i < n; i++) { positions.push(p); p += g; g += 1; }
+        } else if (mode === 1) {     // constant ascending gap
             p = randInt(1, 6); g = pick([2, 3, 4, 5]);
-            for (var j = 0; j < n; j++) { positions.push(p); p += g; }
+            for (i = 0; i < n; i++) { positions.push(p); p += g; }
+        } else {                     // constant descending gap
+            g = pick([2, 3, 4]); p = randInt(20, 26);
+            for (i = 0; i < n; i++) { positions.push(p); p -= g; }
         }
         var ansPos = p;
-        if (ansPos > 26) return null;
+        if (ansPos < 1 || ansPos > 26) return null;
+        for (i = 0; i < positions.length; i++) if (positions[i] < 1 || positions[i] > 26) return null;
         var ch = letterChoices(ansPos);
         return { terms: positions.map(toLetter), answer: toLetter(ansPos), letter: true, _choices: ch };
     }
 
-    var GENS = [gArith, gArith, gGeo, gGeo, gFib, gSecond, gSecond, gInterleave, gCombo, gCombo, gPower, gLetters, gLetters];
+    // Prime numbers in order (composite near-misses make good traps).
+    var PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97];
+    function gPrimes() {
+        var n = pick([4, 5]);
+        var start = rnd(PRIMES.length - n - 1);
+        var terms = PRIMES.slice(start, start + n);
+        var ans = PRIMES[start + n];
+        var last = terms[n - 1], prev = terms[n - 2];
+        return { terms: terms, answer: ans, hints: [ans - 1, ans + 1, last + (last - prev), last + 2] };
+    }
+
+    // Differences form a geometric sequence (e.g. +2, +4, +8, +16).
+    function gGeoDiff() {
+        var s = randInt(1, 6), d = pick([2, 3]), r = pick([2, 3]);
+        var n = pick([4, 5]);
+        var terms = [s], diff = d;
+        for (var i = 1; i < n; i++) { terms.push(terms[i - 1] + diff); diff *= r; }
+        var ans = terms[n - 1] + diff;
+        if (ans > 200000) return null;
+        var lastdiff = diff / r;
+        return { terms: terms, answer: ans, hints: [terms[n - 1] + lastdiff, terms[n - 1] + lastdiff * (r + 1), ans + 1, ans - lastdiff] };
+    }
+
+    // Linear recurrence: each term = m×previous + c (e.g. 2,3,5,9,17 is ×2−1).
+    function gRecurrence() {
+        var m = pick([2, 2, 3]), c = pick([1, -1, 2, -2, 3]);
+        var s = randInt(1, 5), n = pick([4, 5]);
+        var terms = [s], v = s;
+        for (var i = 1; i < n; i++) { v = m * v + c; terms.push(v); }
+        var ans = m * v + c;
+        if (!isFinite(ans) || Math.abs(ans) > 200000) return null;
+        return { terms: terms, answer: ans, hints: [m * v, m * v - c, ans + c, ans - 2 * c] };
+    }
+
+    // Tribonacci: each term is the sum of the previous three.
+    function gTrib() {
+        var n = pick([5, 6]);
+        var terms = [randInt(1, 4), randInt(1, 4), randInt(1, 5)];
+        for (var i = 3; i < n; i++) terms.push(terms[i - 1] + terms[i - 2] + terms[i - 3]);
+        var ans = terms[n - 1] + terms[n - 2] + terms[n - 3];
+        return { terms: terms, answer: ans, hints: [terms[n - 1] + terms[n - 2], 2 * terms[n - 1], ans + 1, ans - terms[n - 3]] };
+    }
+
+    // Weighted two-term recurrence: term = a×prev + b×prevprev (Pell/Lucas-like).
+    function gWeightedFib() {
+        var w = pick([[2, 1], [1, 2], [3, 1]]), m1 = w[0], m2 = w[1];
+        var a = randInt(1, 4), b = randInt(1, 5), n = pick([4, 5]);
+        var terms = [a, b];
+        for (var i = 2; i < n; i++) terms.push(m1 * terms[i - 1] + m2 * terms[i - 2]);
+        var ans = m1 * terms[n - 1] + m2 * terms[n - 2];
+        if (ans > 200000) return null;
+        return { terms: terms, answer: ans, hints: [terms[n - 1] + terms[n - 2], m1 * terms[n - 1], ans + 1, ans - terms[n - 2]] };
+    }
+
+    // Differences alternate between two constants (e.g. +5, +2, +5, +2).
+    function gAltDiff() {
+        var s = randInt(1, 15), d1 = pick([2, 3, 4, 5, 6]), d2 = pick([1, 7, 8, -2, -3, 9]);
+        var n = pick([5, 6]);
+        var terms = [s], v = s;
+        for (var i = 1; i < n; i++) { v += (i % 2 === 1) ? d1 : d2; terms.push(v); }
+        var ans = v + ((n % 2 === 1) ? d1 : d2);
+        return { terms: terms, answer: ans, hints: [v + ((n % 2 === 1) ? d2 : d1), ans + 1, ans - 1, v + d1 + d2] };
+    }
+
+    // Pronic numbers: products of consecutive integers, n×(n+1).
+    function gPronic() {
+        var s = randInt(1, 4), n = pick([4, 5]), terms = [], k;
+        for (var i = 0; i < n; i++) { k = s + i; terms.push(k * (k + 1)); }
+        k = s + n; var ans = k * (k + 1);
+        var last = terms[n - 1], prev = terms[n - 2];
+        return { terms: terms, answer: ans, hints: [last + (last - prev), ans + 1, ans - 1, last + (last - prev) + 2] };
+    }
+
+    // Factorials: 1, 2, 6, 24, 120, ...
+    function gFact() {
+        var seq = [1, 2, 6, 24, 120, 720], n = pick([4, 5]);
+        var terms = seq.slice(0, n), ans = seq[n];
+        var last = terms[n - 1];
+        return { terms: terms, answer: ans, hints: [last * n, last * (n + 2), ans + last, ans - 1] };
+    }
+
+    // Quadratic: k² + c (e.g. n²+1 → 2, 5, 10, 17, ...).
+    function gPolyN2() {
+        var c = pick([1, -1, 2, -2, 3]), s = randInt(1, 3), n = pick([4, 5]), terms = [], k;
+        for (var i = 0; i < n; i++) { k = s + i; terms.push(k * k + c); }
+        k = s + n; var ans = k * k + c;
+        var last = terms[n - 1], prev = terms[n - 2];
+        return { terms: terms, answer: ans, hints: [last + (last - prev), ans + 1, ans - 1, last + (last - prev) + 2] };
+    }
+
+    // Two interleaved sequences: one arithmetic, one geometric.
+    function gInterleaveMixed() {
+        var aA = randInt(1, 9), dA = pick([2, 3, 4, 5, -2]);
+        var gr = pick([2, 3]), bv = pick([2, 3]);
+        var terms = [], lastB;
+        for (var i = 0; i < 3; i++) { terms.push(aA + i * dA); terms.push(bv); lastB = bv; bv *= gr; }
+        var ans = aA + 3 * dA;       // next term belongs to the arithmetic sequence
+        if (Math.abs(ans) > 200000) return null;
+        return { terms: terms, answer: ans, hints: [bv, ans - dA, ans + dA, lastB * gr] };
+    }
+
+    // Alternating sign: arithmetic magnitude with flipping sign, or negative-ratio geometric.
+    function gAltSign() {
+        var i, terms = [], ans, mag;
+        if (rnd(2)) {                // 1, -2, 3, -4, 5, ...
+            var d = pick([1, 2, 3]), s = randInt(1, 4), n = pick([5, 6]);
+            for (i = 0; i < n; i++) { mag = s + i * d; terms.push(i % 2 === 0 ? mag : -mag); }
+            mag = s + n * d; ans = n % 2 === 0 ? mag : -mag;
+            return { terms: terms, answer: ans, hints: [-ans, ans + d, ans - d, n % 2 === 0 ? -mag : mag] };
+        }
+        var r = pick([2, 3]), a = pick([1, 2, 3]), m = pick([4, 5]), v = a;   // 2, -6, 18, -54, ...
+        for (i = 0; i < m; i++) { terms.push(v); v *= -r; }
+        ans = v;
+        if (Math.abs(ans) > 200000) return null;
+        return { terms: terms, answer: ans, hints: [-ans, ans + 1, ans - 1, terms[m - 1] * r] };
+    }
+
+    var GENS = [
+        gArith, gArith, gGeo, gGeo, gFib, gFib, gSecond, gSecond,
+        gInterleave, gInterleaveMixed, gCombo, gCombo, gPower, gLetters, gLetters,
+        gPrimes, gGeoDiff, gRecurrence, gTrib, gWeightedFib, gAltDiff, gAltDiff,
+        gPronic, gFact, gPolyN2, gAltSign, gAltSign
+    ];
 
     function buildTest() {
         var qs = [], seen = {}, guard = 0;
