@@ -4,6 +4,7 @@
     <title>Arithmetic Game – Online Speed Drill</title>
     <link href="app.css" rel="stylesheet" />
     <link href="flow.css" rel="stylesheet" />
+    <link href="seq.css" rel="stylesheet" />
   </head>
   <body>
     <div id="welcome">
@@ -178,6 +179,97 @@
         </div>
       </div>
     </div>
+    <div id="oa-choose" style="display:none">
+      <div class="flow-logo">FLOW <span>&#9632;</span> TRADERS</div>
+      <h1>Choose an Assessment</h1>
+      <div class="oa-cards">
+        <button type="button" class="oa-card" id="choose-math">
+          <h2>Mental Math</h2>
+          <p>60 questions &middot; 6 minutes. Fast multiple-choice arithmetic.</p>
+        </button>
+        <button type="button" class="oa-card" id="choose-seq">
+          <h2>Sequences</h2>
+          <p>26 questions &middot; 25 minutes. Find the next term in a pattern.</p>
+        </button>
+      </div>
+      <div class="flow-actions">
+        <button type="button" class="flow-secondary" id="oa-back">Back</button>
+      </div>
+    </div>
+
+    <div id="seq" style="display:none">
+      <div id="seq-intro">
+        <div class="flow-logo">FLOW <span>&#9632;</span> TRADERS</div>
+        <h1>Sequences Assessment</h1>
+        <p class="seq-scores" id="seq-scores"></p>
+        <div class="flow-card">
+          <h2>Test Characteristics</h2>
+          <ul>
+            <li>26 questions</li>
+            <li>Multiple choice (A, B, C, D, E)</li>
+            <li>25 minutes</li>
+            <li>You can navigate back to previous questions and change or skip answers.</li>
+          </ul>
+        </div>
+        <div class="flow-card">
+          <h2>Scoring System</h2>
+          <ul>
+            <li><strong>+1</strong> point for correct answers</li>
+            <li><strong>&minus;1</strong> point for incorrect answers</li>
+            <li><strong>0</strong> points for unanswered and skipped questions</li>
+          </ul>
+        </div>
+        <div class="flow-card">
+          <h2>Test Instructions</h2>
+          <ul>
+            <li>This is a timed test. Please make sure you are not interrupted during the test, as the timer cannot be paused once started.</li>
+            <li>You are not allowed to use pen, paper, or a calculator.</li>
+            <li>The test must be taken by yourself without any help of any kind.</li>
+            <li>Please ensure you&rsquo;re in a quiet place and have a stable internet connection.</li>
+            <li>If you pass this test, Flow Traders reserves the right to have you retake the test at any stage of the interview process to verify your score.</li>
+          </ul>
+        </div>
+        <div class="flow-actions">
+          <button type="button" id="seq-start">Start Test</button>
+          <button type="button" class="flow-secondary" id="seq-back">Back</button>
+        </div>
+      </div>
+
+      <div id="seq-test" style="display:none">
+        <div id="seq-topbar">
+          <span id="seq-progress">Question 1 / 26</span>
+          <span id="seq-timer">25:00</span>
+        </div>
+        <div id="seq-progressbar"><div id="seq-progressfill"></div></div>
+        <div id="seq-question"></div>
+        <div id="seq-options"></div>
+        <div id="seq-nav">
+          <button type="button" id="seq-prev">&#8592; Previous</button>
+          <button type="button" id="seq-next">Next &#8594;</button>
+          <button type="button" id="seq-finish">Finish Test</button>
+        </div>
+        <div id="seq-palette"></div>
+      </div>
+
+      <div id="seq-results" style="display:none">
+        <div class="flow-logo">FLOW <span>&#9632;</span> TRADERS</div>
+        <h1>Your Result</h1>
+        <div id="seq-score-big"></div>
+        <div id="seq-breakdown"></div>
+        <div class="flow-actions">
+          <button type="button" id="seq-retake">Retake Test</button>
+          <button type="button" class="flow-secondary" id="seq-results-back">Back to Home</button>
+        </div>
+        <h2 class="seq-review-title">Question Review</h2>
+        <table id="seq-review">
+          <thead>
+            <tr><th>#</th><th>Sequence</th><th>Your answer</th><th>Correct</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="flow" style="display:none">
       <div id="flow-intro">
         <div class="flow-logo">FLOW <span>&#9632;</span> TRADERS</div>
@@ -249,5 +341,6 @@
     <script src="chart.min.js"></script>
     <script src="app.js"></script>
     <script src="flow.js"></script>
+    <script src="seq.js"></script>
   </body>
 </html>

@@ -1,0 +1,175 @@
+/* Flow Traders OA — Sequences test. Reuses the shared .flow-* brand classes
+   (logo, cards, actions, options, review) from flow.css; this file adds the
+   OA-mode chooser plus the sequences container, navigation and palette. */
+
+/* --- mode chooser --- */
+#oa-choose {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+    color: #222;
+}
+#oa-choose h1 { font-size: 26px; margin: 0 0 20px; }
+.oa-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.oa-card {
+    display: block;
+    text-align: left;
+    background: #f4f4f4;
+    border: 2px solid #e0e0e0;
+    border-left: 4px solid #e2231a;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    font-family: inherit;
+}
+.oa-card:hover { border-color: #e2231a; background: #fff; }
+.oa-card h2 { font-size: 18px; margin: 0 0 8px; }
+.oa-card p { margin: 0; color: #555; font-size: 14px; line-height: 1.4; }
+
+/* --- sequences container (mirrors #flow) --- */
+#seq {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+    color: #222;
+}
+#seq h1 { font-size: 26px; margin: 0 0 4px; }
+#seq h2 { font-size: 16px; margin: 0 0 8px; }
+.seq-scores { color: #555; margin: 0 0 20px; }
+
+/* --- test view --- */
+#seq-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+#seq-progress { color: #555; }
+#seq-timer {
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    background: #1a1a1a;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 4px;
+}
+#seq-progressbar {
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+#seq-progressfill {
+    height: 100%;
+    width: 0;
+    background: #e2231a;
+    transition: width 0.2s ease;
+}
+#seq-question {
+    text-align: center;
+    font-size: 34px;
+    font-weight: bold;
+    margin: 24px 0 34px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+}
+#seq-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+/* selected answer highlight (options otherwise inherit .flow-opt from flow.css) */
+.flow-opt.selected {
+    border-color: #e2231a;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #e2231a;
+}
+
+/* --- navigation --- */
+#seq-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+#seq-nav button {
+    padding: 10px 22px;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+#seq-prev, #seq-next { background: #ddd; color: #222; }
+#seq-prev:hover:not(:disabled), #seq-next:hover:not(:disabled) { background: #ccc; }
+#seq-prev:disabled, #seq-next:disabled { opacity: 0.4; cursor: default; }
+#seq-finish { background: #e2231a; color: #fff; margin-left: auto; }
+#seq-finish:hover { background: #b91a13; }
+
+/* --- question palette --- */
+#seq-palette {
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+.seq-pal {
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: bold;
+    border: 1px solid #ddd;
+    background: #f4f4f4;
+    color: #555;
+    cursor: pointer;
+    border-radius: 3px;
+    font-family: inherit;
+}
+.seq-pal:hover { border-color: #999; }
+.seq-pal.answered { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.seq-pal.current { border-color: #e2231a; box-shadow: inset 0 0 0 2px #e2231a; color: #222; }
+.seq-pal.answered.current { color: #fff; }
+
+/* --- results view --- */
+#seq-score-big { font-size: 34px; margin: 10px 0; }
+#seq-score-big small { color: #888; font-size: 20px; }
+#seq-breakdown {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+#seq-breakdown span { font-weight: bold; }
+.seq-review-title { margin-top: 30px; }
+#seq-review {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+#seq-review th, #seq-review td {
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+#seq-review th { background: #1a1a1a; color: #fff; }
+#seq-review tr.flow-right td:first-child { border-left: 3px solid #2e9e44; }
+#seq-review tr.flow-wrong td:first-child { border-left: 3px solid #e2231a; }
+#seq-review tr.flow-blank td:first-child { border-left: 3px solid #bbb; }
+#seq-review tr.flow-wrong { background: #fdecea; }
+#seq-review tr.flow-blank { background: #f7f7f7; }
+
+@media (max-width: 560px) {
+    .oa-cards { grid-template-columns: 1fr; }
+    #seq-options { grid-template-columns: 1fr; }
+    #seq-question { font-size: 26px; }
+    #seq-palette { grid-template-columns: repeat(9, 1fr); }
+}

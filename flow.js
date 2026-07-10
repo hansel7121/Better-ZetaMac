@@ -316,8 +316,14 @@
     $(function () {
         $('#flow-open').on('click', function () {
             $('#welcome').hide();
+            $('#oa-choose').show();
+            window.scrollTo(0, 0);
+        });
+        $('#choose-math').on('click', function () {
+            $('#oa-choose').hide();
             $('#flow').show();
             showIntro();
+            window.scrollTo(0, 0);
         });
         $('#flow-back, #flow-results-back').on('click', function () {
             if (flowTimer) { clearInterval(flowTimer); flowTimer = null; }
