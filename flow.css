@@ -88,11 +88,11 @@
     border-radius: 4px;
 }
 #flow-progressbar {
-    height: 6px;
+    height: 8px;
     background: #eee;
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 40px;
+    margin-bottom: 0;
 }
 #flow-progressfill {
     height: 100%;
@@ -100,27 +100,45 @@
     background: #e2231a;
     transition: width 0.2s ease;
 }
+/* Test view fills the viewport so the question/options sit centred in the
+   available space instead of clustering small at the top. */
+#flow-test {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 48px);
+    min-height: calc(100dvh - 48px);
+    box-sizing: border-box;
+}
+#flow-main {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(24px, 6vh, 56px);
+    padding: 12px 0;
+}
 #flow-question {
     text-align: center;
-    font-size: 44px;
+    font-size: clamp(38px, 11vw, 56px);
     font-weight: bold;
-    margin: 30px 0 40px;
     font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    word-break: break-word;
 }
 #flow-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: clamp(12px, 2.5vw, 16px);
 }
 .flow-opt {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 18px 20px;
+    padding: clamp(16px, 4vw, 22px) 20px;
     background: #f4f4f4;
     border: 2px solid #e0e0e0;
     border-radius: 6px;
-    font-size: 22px;
+    font-size: clamp(20px, 5.5vw, 26px);
     cursor: pointer;
     text-align: left;
     transition: all 0.1s ease;
@@ -133,12 +151,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: clamp(34px, 8vw, 40px);
+    height: clamp(34px, 8vw, 40px);
     background: #1a1a1a;
     color: #fff;
     border-radius: 50%;
-    font-size: 16px;
+    font-size: clamp(16px, 4vw, 20px);
     font-weight: bold;
     flex: 0 0 auto;
 }
@@ -183,6 +201,7 @@ tr.flow-blank { background: #f7f7f7; }
 .flow-blank { color: #888; }
 
 @media (max-width: 560px) {
+    #flow { padding: 16px 14px 40px; }
     #flow-options { grid-template-columns: 1fr; }
-    #flow-question { font-size: 34px; }
+    #flow-progressbar { height: 10px; }
 }
