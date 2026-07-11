@@ -27,6 +27,69 @@
         return i === -1 ? 0 : s.length - i - 1;
     }
 
+    // --- fractions --------------------------------------------------------
+    function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var k = rnd(i + 1); var t = a[i]; a[i] = a[k]; a[k] = t; } return a; }
+    function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a || 1; }
+    function mkF(n, d) { if (d < 0) { n = -n; d = -d; } var g = gcd(n, d); return { n: n / g, d: d / g }; }
+    function rawF(n, d) { if (d < 0) { n = -n; d = -d; } return { n: n, d: d }; }
+    function Fadd(a, b) { return mkF(a.n * b.d + b.n * a.d, a.d * b.d); }
+    function Fsub(a, b) { return mkF(a.n * b.d - b.n * a.d, a.d * b.d); }
+    function Fmul(a, b) { return mkF(a.n * b.n, a.d * b.d); }
+    function Fdiv(a, b) { return mkF(a.n * b.d, a.d * b.n); }
+    function Fkey(f) { var r = mkF(f.n, f.d); return r.n + '/' + r.d; }
+
+    // stacked numerator/denominator (plain whole number when d === 1)
+    function fracHTML(f) {
+        if (f.d === 1) return String(f.n);
+        var s = '', n = f.n;
+        if (n < 0) { s = '−'; n = -n; }
+        return s + '<span class="frac"><span class="fnum">' + n + '</span><span class="fden">' + f.d + '</span></span>';
+    }
+    // mixed number: whole part beside a proper fraction
+    function mixedHTML(f) {
+        var neg = f.n < 0 ? '−' : '', n = Math.abs(f.n), w = Math.floor(n / f.d), r = n - w * f.d;
+        if (f.d === 1) return neg + n;
+        if (r === 0) return neg + w;
+        var whole = w > 0 ? '<span class="fwhole">' + w + '</span>' : '';
+        return neg + '<span class="mixed">' + whole + '<span class="frac"><span class="fnum">' + r + '</span><span class="fden">' + f.d + '</span></span></span>';
+    }
+    function fracText(f) { return f.d === 1 ? String(f.n) : f.n + '/' + f.d; }
+    function mixedText(f) {
+        var neg = f.n < 0 ? '-' : '', n = Math.abs(f.n), w = Math.floor(n / f.d), r = n - w * f.d;
+        if (f.d === 1) return neg + n;
+        if (r === 0) return neg + w;
+        return neg + (w > 0 ? w + ' ' : '') + r + '/' + f.d;
+    }
+
+    // Build four fraction choices in the given display form ('frac' | 'mixed').
+    // Distractors mirror the real test: numerator/whole-part off-by-ones.
+    function fracChoices(correct, form) {
+        correct = mkF(correct.n, correct.d);
+        var seen = {}; seen[Fkey(correct)] = true; var wrong = [];
+        function add(f) {
+            if (!f || f.d === 0 || !isFinite(f.n) || !isFinite(f.d)) return;
+            if (f.d < 0) f = { n: -f.n, d: -f.d };
+            var k = Fkey(f); if (seen[k]) return; seen[k] = true; wrong.push(f);
+        }
+        if (form === 'mixed') {
+            var sgn = correct.n < 0 ? -1 : 1, n = Math.abs(correct.n), d = correct.d, w = Math.floor(n / d), r = n - w * d;
+            shuffle([[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1], [2, 0], [0, 2]]).forEach(function (p) {
+                var W = w + p[0], R = r + p[1];
+                if (W < 0 || R < 0 || R >= d) return;
+                add({ n: sgn * (W * d + R), d: d });
+            });
+        } else {
+            shuffle([1, -1, 2, -2, 3, -3, 4]).forEach(function (k) { add({ n: correct.n + k, d: correct.d }); });
+            add(mkF(correct.n, correct.d + 1));
+            add(mkF(correct.n + 1, correct.d + 1));
+        }
+        var opts = wrong.slice(0, 3).concat([correct]);
+        shuffle(opts);
+        var rH = form === 'mixed' ? mixedHTML : fracHTML, rT = form === 'mixed' ? mixedText : fracText;
+        var ci = 0; for (var i = 0; i < opts.length; i++) if (Fkey(opts[i]) === Fkey(correct)) ci = i;
+        return { options: opts.map(rH), optionsText: opts.map(rT), correctIndex: ci };
+    }
+
     // --- multiple-choice distractors -------------------------------------
     // Build four choices for `correct`. Distractors mirror the real test's
     // traps: order-of-magnitude shifts, digit transpositions and near-misses.
@@ -170,13 +233,72 @@
     function bSmallDec() { var b = pick([0.03, 0.14, 0.05, 0.02, 0.007, 0.325, 0.008]); var a = randInt(300, 9999); return { text: a + ' × ' + fmt(b), answer: roundTo(a * b, 6) }; }
     function bBigAdd() { var a = randInt(1050, 9999), b = randInt(1050, 9999); return rnd(2) ? { text: a + ' + ' + b, answer: a + b } : { text: a + ' − ' + b, answer: a - b }; }
 
+    // Section 4: fractions (rendered as stacked fractions / mixed numbers)
+    function simpleFrac() { var d = pick([2, 3, 4, 5, 6, 8, 9, 10, 12]); return mkF(randInt(1, d - 1), d); }
+
+    // a/b ± c/d, answer shown as an improper fraction (operands may be unreduced)
+    function gFracAddSub() {
+        var op = pick(['+', '−']);
+        var d1 = pick([2, 3, 4, 5, 6, 7, 8, 9]);
+        var d2 = pick([d1, d1 * pick([2, 3]), pick([2, 3, 4, 5, 6, 8, 9])]);
+        var a = rawF(randInt(1, 2 * d1), d1);
+        var b = rawF(randInt(1, 2 * d2), d2);
+        var ans = op === '+' ? Fadd(a, b) : Fsub(a, b);
+        if (ans.n === 0) return null;
+        var ch = fracChoices(ans, 'frac');
+        return { html: fracHTML(a) + ' ' + op + ' ' + fracHTML(b) + ' = ?', text: fracText(a) + ' ' + op + ' ' + fracText(b), options: ch.options, optionsText: ch.optionsText, correctIndex: ch.correctIndex };
+    }
+
+    // whole ± fraction, answer shown as a mixed number (e.g. 80 − 24/7 = 76 4/7)
+    function gIntFrac() {
+        var op = pick(['+', '−']);
+        var W = randInt(6, 90), f;
+        if (rnd(2)) { var d = pick([3, 4, 5, 6, 7, 8, 9]); f = rawF(randInt(d + 1, 4 * d), d); }
+        else { f = simpleFrac(); }
+        var ans = op === '+' ? Fadd({ n: W, d: 1 }, f) : Fsub({ n: W, d: 1 }, f);
+        if (ans.d === 1) return null;
+        var ch = fracChoices(ans, 'mixed');
+        return { html: W + ' ' + op + ' ' + fracHTML(f) + ' = ?', text: W + ' ' + op + ' ' + fracText(f), options: ch.options, optionsText: ch.optionsText, correctIndex: ch.correctIndex };
+    }
+
+    // solve for the missing operand: '? op b = res' or 'a op ? = res'
+    function gFracSolve() {
+        var op = pick(['+', '−']);
+        var a = simpleFrac(), b = simpleFrac();
+        var res = op === '+' ? Fadd(a, b) : Fsub(a, b);
+        if (res.n === 0) return null;
+        var answer, html, text;
+        if (rnd(2)) {
+            answer = a;
+            html = '? ' + op + ' ' + fracHTML(b) + ' = ' + fracHTML(res);
+            text = '? ' + op + ' ' + fracText(b) + ' = ' + fracText(res);
+        } else {
+            answer = b;
+            html = fracHTML(a) + ' ' + op + ' ? = ' + fracHTML(res);
+            text = fracText(a) + ' ' + op + ' ? = ' + fracText(res);
+        }
+        var ch = fracChoices(answer, 'frac');
+        return { html: html, text: text, options: ch.options, optionsText: ch.optionsText, correctIndex: ch.correctIndex };
+    }
+
+    // a/b × c/d or a/b ÷ c/d
+    function gFracMulDiv() {
+        var op = pick(['×', '÷']);
+        var a = simpleFrac(), b = simpleFrac();
+        var res = op === '×' ? Fmul(a, b) : Fdiv(a, b);
+        var ch = fracChoices(res, 'frac');
+        return { html: fracHTML(a) + ' ' + op + ' ' + fracHTML(b) + ' = ?', text: fracText(a) + ' ' + op + ' ' + fracText(b), options: ch.options, optionsText: ch.optionsText, correctIndex: ch.correctIndex };
+    }
+
     var basicGens = [gAdd, gSub, gMul, gDiv];
     var decGens = [dMul, dMul, dDiv, dAddSub];
     var bigGens = [bMulBig, bMul3x2, bRound, bDecPct, bDecInt, bSmallDec, bBigAdd];
+    var fracGens = [gFracAddSub, gFracAddSub, gIntFrac, gFracSolve, gFracMulDiv];
 
     function buildTest() {
         var qs = [];
         var seen = {};
+        // numeric generators return { text, answer }; wrap into the display model
         function addFrom(gens, count) {
             var made = 0, guard = 0;
             while (made < count && guard < count * 60) {
@@ -185,13 +307,26 @@
                 if (!g || !isFinite(g.answer) || seen[g.text]) continue;
                 seen[g.text] = true;
                 var c = makeChoices(g.answer);
-                qs.push({ text: g.text, answer: fmt(g.answer), options: c.options, correctIndex: c.correctIndex });
+                qs.push({ text: g.text, html: g.text + ' =', options: c.options, optionsText: c.options, correctIndex: c.correctIndex });
                 made++;
             }
         }
-        addFrom(basicGens, 24);
-        addFrom(decGens, 21);
-        addFrom(bigGens, 15);
+        // fraction generators already return a full display-ready question
+        function addFromQ(gens, count) {
+            var made = 0, guard = 0;
+            while (made < count && guard < count * 80) {
+                guard++;
+                var q = pick(gens)();
+                if (!q || q.correctIndex < 0 || seen[q.text]) continue;
+                seen[q.text] = true;
+                qs.push(q);
+                made++;
+            }
+        }
+        addFrom(basicGens, 18);
+        addFrom(decGens, 15);
+        addFrom(bigGens, 12);
+        addFromQ(fracGens, 15);
         return qs;
     }
 
@@ -227,7 +362,7 @@
         var q = test[index];
         $('#flow-progress').text('Question ' + (index + 1) + ' / ' + TOTAL);
         $('#flow-progressfill').css('width', (index / TOTAL * 100) + '%');
-        $('#flow-question').text(q.text + ' =');
+        $('#flow-question').html(q.html);
         var letters = ['A', 'B', 'C', 'D'];
         var html = '';
         for (var i = 0; i < q.options.length; i++) {
@@ -281,12 +416,12 @@
             if (a === null || a === undefined) {
                 blank++; cls = 'flow-blank'; your = '<em>&mdash;</em>';
             } else if (a === q.correctIndex) {
-                correct++; cls = 'flow-right'; your = letters[a] + '. ' + q.options[a];
+                correct++; cls = 'flow-right'; your = letters[a] + '. ' + q.optionsText[a];
             } else {
-                wrong++; cls = 'flow-wrong'; your = letters[a] + '. ' + q.options[a];
+                wrong++; cls = 'flow-wrong'; your = letters[a] + '. ' + q.optionsText[a];
             }
             rows += '<tr class="' + cls + '"><td>' + (i + 1) + '</td><td>' + q.text +
-                '</td><td>' + your + '</td><td>' + letters[q.correctIndex] + '. ' + q.options[q.correctIndex] + '</td></tr>';
+                '</td><td>' + your + '</td><td>' + letters[q.correctIndex] + '. ' + q.optionsText[q.correctIndex] + '</td></tr>';
         }
         var score = correct - wrong;
         saveFlowResult({ score: score, correct: correct, wrong: wrong, blank: blank });

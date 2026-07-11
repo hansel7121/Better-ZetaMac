@@ -162,6 +162,21 @@
 }
 .flow-val { font-variant-numeric: tabular-nums; }
 
+/* stacked fractions and mixed numbers (used in questions and option buttons) */
+.frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    font-size: 0.78em;
+    line-height: 1.05;
+    margin: 0 0.12em;
+}
+.frac .fnum { padding: 0 0.35em 0.06em; border-bottom: 0.09em solid currentColor; }
+.frac .fden { padding: 0.06em 0.35em 0; }
+.mixed { display: inline-flex; align-items: center; gap: 0.18em; vertical-align: middle; }
+
 /* --- results view --- */
 #flow-score-big {
     font-size: 34px;
